@@ -1,4 +1,4 @@
-const CACHE = "daily-todo-v3";
+const CACHE = "daily-todo-v7";
 const FILES = ["./", "index.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
 
 self.addEventListener("install", (e) => {
@@ -23,5 +23,16 @@ self.addEventListener("fetch", (e) => {
         return res;
       })
       .catch(() => caches.match(e.request).then((r) => r || caches.match("index.html")))
+  );
+});
+
+// Tapping a reminder brings the app to the front.
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  e.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const c of list) { if ("focus" in c) return c.focus(); }
+      return clients.openWindow("./");
+    })
   );
 });

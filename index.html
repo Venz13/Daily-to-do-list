@@ -13,9 +13,10 @@
 <link rel="icon" type="image/png" href="icons/icon-192.png">
 <title>Daily To-Do</title>
 <style>
-  :root{--bg:#f6f5f1;--card:#fff;--ink:#1f2328;--mute:#6b7280;--line:#e4e2db;--accent:#2f7d5b;--cross:#b4443a;--soft:#f0efe9}
-  @media (prefers-color-scheme:dark){:root{--bg:#16181b;--card:#202327;--ink:#e8e8e6;--mute:#8b929b;--line:#32363c;--accent:#4fb487;--cross:#e07468;--soft:#292d32}}
+  :root{--bg:#f6f5f1;--card:#fff;--ink:#1f2328;--mute:#6b7280;--line:#e4e2db;--accent:#2f7d5b;--cross:#b4443a;--soft:#f0efe9;--red:#d92d2d}
+  @media (prefers-color-scheme:dark){:root{--bg:#16181b;--card:#202327;--ink:#e8e8e6;--mute:#8b929b;--line:#32363c;--accent:#4fb487;--cross:#e07468;--soft:#292d32;--red:#ff5c5c}}
   *{box-sizing:border-box}
+  [hidden]{display:none!important}
   body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:max(24px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
   main{max-width:560px;margin:0 auto}
   h1{font-size:1.5rem;margin:0}
@@ -25,7 +26,9 @@
   .count{color:var(--mute);font-size:.875rem;margin-bottom:16px;min-height:1.2em}
   .addrow{display:flex;gap:8px;margin-bottom:16px}
   input[type=text]{flex:1;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font:inherit}
+  select{padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font:inherit;font-size:.9rem}
   button{font:inherit;cursor:pointer}
+  button:disabled{opacity:.45;cursor:default}
   .add{padding:10px 16px;border:0;border-radius:10px;background:var(--accent);color:#fff;font-weight:600}
   ul{list-style:none;margin:0;padding:0;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
   li{border-bottom:1px solid var(--line)}
@@ -33,40 +36,88 @@
   .row{display:flex;align-items:center;gap:12px;padding:12px 14px}
   .box{width:26px;height:26px;flex:none;border:2px solid var(--mute);border-radius:7px;background:transparent;color:#fff;display:grid;place-items:center;padding:0;font-size:16px;line-height:1}
   li.done .box{background:var(--accent);border-color:var(--accent)}
-  .name{flex:1;display:flex;align-items:center;gap:8px;cursor:pointer;background:none;border:0;color:inherit;text-align:left;padding:2px 0;word-break:break-word}
+  .name{flex:1;display:flex;align-items:center;gap:6px;cursor:pointer;background:none;border:0;color:inherit;text-align:left;padding:2px 0;word-break:break-word}
   li.done .name .t{text-decoration:line-through;color:var(--mute)}
-  .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none;opacity:.8}
+  .pri{color:var(--red);font-weight:800}
+  li.done .pri{opacity:.5}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none;opacity:.8;margin-left:2px}
   .chev{color:var(--mute);font-size:.8rem;transition:transform .15s;flex:none}
   li.open .chev{transform:rotate(90deg)}
   .x{border:0;background:transparent;color:var(--mute);font-size:20px;padding:2px 8px;border-radius:6px}
   .x:hover{color:var(--cross)}
   .detail{display:none;padding:0 14px 14px 52px}
   li.open .detail{display:block}
+  .pri-l{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:.9rem;cursor:pointer;width:max-content}
+  .pri-l input{width:18px;height:18px;accent-color:var(--red);margin:0}
   textarea{width:100%;min-height:84px;resize:vertical;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--soft);color:var(--ink);font:inherit;font-size:.95rem}
   .grip{flex:none;color:var(--mute);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;padding:4px 2px;font-size:18px;line-height:1;letter-spacing:-2px;border-radius:6px}
   .grip:hover{color:var(--ink)}
   li.dragging{background:var(--soft);box-shadow:0 4px 16px rgba(0,0,0,.18);position:relative;z-index:2}
   li.dragging .grip{cursor:grabbing}
-  #hist{margin-top:20px}
+
+  /* history */
+  #hist{margin-top:22px}
+  .hhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+  .hhead h2{font-size:1.1rem;margin:0}
+  .hbtns{display:flex;gap:6px}
+  .sm{padding:6px 10px;font-size:.85rem}
+  .danger{color:var(--cross)}
+  .htools{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+  .htools input{flex:1 1 100%;min-width:0;padding:8px 12px;font-size:.9rem}
+  .htools select{flex:1 1 0;min-width:0}
+  .hbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;color:var(--mute);font-size:.9rem}
+  .hbar .sp{flex:1}
   .hday{margin:0 0 14px}
-  .hday h3{font-size:.95rem;margin:0 0 6px;color:var(--mute);font-weight:600}
-  .hday ul{padding:4px 0}
-  .hi{padding:8px 14px;border-bottom:1px solid var(--line)}
-  .hi:last-child{border-bottom:0}
-  .hi .m{display:inline-block;width:1.2em;color:var(--accent);font-weight:700}
-  .hi.no .m{color:var(--mute)}
-  .hi.no .tt{color:var(--mute)}
-  .hi .dd{margin:2px 0 0 1.2em;color:var(--mute);font-size:.85rem;white-space:pre-wrap;word-break:break-word}
+  .hday h3{display:flex;justify-content:space-between;gap:8px;font-size:.85rem;margin:0 0 6px;color:var(--mute);font-weight:600}
+  .hday h3 b{font-weight:600;color:var(--ink)}
+  .hi{display:flex;align-items:flex-start;gap:10px;padding:9px 14px}
+  .hi.pick{cursor:pointer}
+  .hi.picked{background:var(--soft)}
+  .hi input[type=checkbox]{width:18px;height:18px;margin:2px 0 0;accent-color:var(--accent);flex:none}
+  .hi .cbs{width:18px;flex:none}
+  .hi .m{width:1.1em;flex:none;color:var(--accent);font-weight:700}
+  .hi.no .m,.hi.no .tt{color:var(--mute)}
+  .hc{flex:1;min-width:0}
+  .hl{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  .tt{word-break:break-word}
+  .meta{color:var(--mute);font-size:.75rem;white-space:nowrap;flex:none}
+  .dd{margin-top:2px;color:var(--mute);font-size:.85rem;white-space:pre-wrap;word-break:break-word;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+
   .empty{padding:24px;text-align:center;color:var(--mute)}
   .foot{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
   .ghost{padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
   .note{color:var(--mute);font-size:.8rem;margin-top:12px}
   :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  /* confirm dialog */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:grid;place-items:center;padding:20px;z-index:50}
+  .mbox{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;max-width:360px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+  .mbox p{margin:0 0 16px}
+  .mbtns{display:flex;gap:8px;justify-content:flex-end}
+  .mgo{padding:8px 14px;border:0;border-radius:10px;background:var(--cross);color:#fff;font-weight:600}
+  /* reminders */
+  .top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .bell{position:relative;width:40px;height:40px;flex:none;display:grid;place-items:center;padding:0;border:1px solid var(--line);background:var(--card);color:var(--mute);border-radius:12px}
+  .bell.on{color:var(--accent);border-color:var(--accent)}
+  .bell.on::after{content:"";position:absolute;top:6px;right:7px;width:8px;height:8px;border-radius:50%;background:var(--accent);border:2px solid var(--card);box-sizing:content-box}
+  .mbox h2{font-size:1.1rem;margin:0 0 4px}
+  .sub{color:var(--mute);font-size:.85rem;margin:0 0 12px}
+  .opt{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;cursor:pointer}
+  .opt.sel{border-color:var(--accent);background:var(--soft)}
+  .opt input{width:18px;height:18px;margin:0;accent-color:var(--accent)}
+  .rnext{color:var(--ink);font-size:.9rem;margin:4px 0 12px;min-height:1.2em}
+  .tiny{display:flex;gap:8px;align-items:flex-start;color:var(--mute);font-size:.78rem;margin:0 0 14px;padding:8px 10px;background:var(--soft);border-radius:10px}
+  .info{flex:none;width:16px;height:16px;border-radius:50%;border:1.5px solid var(--mute);font-size:.7rem;font-weight:700;font-style:italic;font-family:Georgia,serif;display:grid;place-items:center;line-height:1;margin-top:1px}
 </style>
 </head>
 <body>
 <main>
-  <h1>Today's To-Do</h1>
+  <div class="top">
+    <h1>Today's To-Do</h1>
+    <button class="bell" id="bell" type="button" aria-label="Reminders" title="Reminders">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+    </button>
+  </div>
   <div class="date" id="date"></div>
   <div class="bar"><i id="fill"></i></div>
   <div class="count" id="count"></div>
@@ -75,31 +126,120 @@
     <button class="add" type="button" id="addbtn">Add</button>
   </div>
   <ul id="list"></ul>
-  <div id="hist"></div>
   <div class="foot">
     <button class="ghost" id="clear">Clear completed</button>
     <button class="ghost" id="hbtn">History</button>
   </div>
-  <div class="note">Drag ⋮⋮ to reorder by priority. Tap the box to check a task off. Tap a task's name to open it and add details. ✕ deletes. Unfinished tasks carry over to the next day, and each day's list is saved under History.</div>
+
+  <section id="hist" hidden>
+    <div class="hhead">
+      <h2>History</h2>
+      <div class="hbtns">
+        <button class="ghost sm" id="hsel" type="button">Select</button>
+        <button class="ghost sm danger" id="hclr" type="button">Clear all</button>
+      </div>
+    </div>
+    <div class="htools">
+      <input type="text" id="hq" placeholder="Search history" autocomplete="off" aria-label="Search history">
+      <select id="hsort" aria-label="Sort history">
+        <option value="new">Newest first</option>
+        <option value="old">Oldest first</option>
+        <option value="az">A to Z</option>
+        <option value="pri">High priority first</option>
+      </select>
+      <select id="hshow" aria-label="Filter history">
+        <option value="all">All</option>
+        <option value="done">Done</option>
+        <option value="open">Not done</option>
+      </select>
+    </div>
+    <div class="hbar" id="hbar" hidden>
+      <span id="hcnt">0 selected</span>
+      <span class="sp"></span>
+      <button class="ghost sm" id="hall" type="button">Select all</button>
+      <button class="ghost sm danger" id="hdel" type="button">Delete selected</button>
+    </div>
+    <div id="hlist"></div>
+  </section>
+
+  <div class="note">Drag ⋮⋮ to reorder. Tap the box to check a task off. Tap a task's name to add details or mark it high priority. Unfinished tasks carry over to the next day, and each day's list is saved under History.</div>
 </main>
+
+<div class="modal" id="modal" hidden>
+  <div class="mbox" role="dialog" aria-modal="true" aria-labelledby="mmsg">
+    <p id="mmsg"></p>
+    <div class="mbtns">
+      <button class="ghost" id="mno" type="button">Cancel</button>
+      <button class="mgo" id="myes" type="button">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="rem" hidden>
+  <div class="mbox" role="dialog" aria-modal="true" aria-labelledby="remTitle">
+    <h2 id="remTitle">Reminders</h2>
+    <p class="sub" id="remStatus"></p>
+    <div id="remOpts"></div>
+    <div class="rnext" id="remNext"></div>
+    <p class="tiny"><span class="info" aria-hidden="true">i</span><span>Reminders only work while the app is open or running in the background. They won't come through if the app is fully closed. You'll see any missed reminder when you reopen it.</span></p>
+    <div class="mbtns">
+      <button class="ghost" id="remTest" type="button">Send test</button>
+      <button class="add" id="remClose" type="button">Done</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
   var KEY="daily-todo-v1";
   var state={date:today(),items:[],history:{},cleared:[]};
-  var histOpen=false,confirmWipe=false;
+  var histOpen=false,selMode=false,sel={};
+  var H={q:"",sort:"new",show:"all"};
   var docRef=null;
   var open={};
 
-  function today(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
-  function uid(){return Math.random().toString(36).slice(2,10);}
+  function pad(n){return String(n).padStart(2,"0");}
+  function dkey(ms){var d=new Date(ms);return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());}
+  function today(){return dkey(Date.now());}
+  function uid(){return Math.random().toString(36).slice(2,10)+Math.random().toString(36).slice(2,6);}
+  function tm(ms){return new Date(ms).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});}
+  function sd(ms){return new Date(ms).toLocaleDateString([],{month:"short",day:"numeric"});}
+  function stamp(ms,k){return dkey(ms)===k?tm(ms):sd(ms)+", "+tm(ms);}
+  function keyDate(k){var p=k.split("-");return new Date(+p[0],+p[1]-1,+p[2]);}
+  function shortKey(k){return keyDate(k).toLocaleDateString([],{month:"short",day:"numeric"});}
+  function longKey(k){return keyDate(k).toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric",year:"numeric"});}
 
-  function snap(list){return list.map(function(i){return {text:i.text,details:i.details||"",done:!!i.done};});}
+  /* ---------- confirmation dialog (used for every delete / clear) ---------- */
+  var modal=document.getElementById("modal"),mYes=document.getElementById("myes"),mNo=document.getElementById("mno");
+  var pending=null,lastFocus=null;
+  function closeModal(){modal.hidden=true;pending=null;if(lastFocus&&lastFocus.focus){try{lastFocus.focus();}catch(e){}}}
+  function ask(msg,label,fn){
+    lastFocus=document.activeElement;
+    document.getElementById("mmsg").textContent=msg;
+    mYes.textContent=label||"Delete";
+    pending=fn;modal.hidden=false;mNo.focus();
+  }
+  mNo.onclick=closeModal;
+  mYes.onclick=function(){var f=pending;closeModal();if(f)f();};
+  modal.addEventListener("click",function(e){if(e.target===modal)closeModal();});
+  document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!modal.hidden)closeModal();});
+
+  /* ---------- data ---------- */
+  function snap(list){
+    return list.map(function(i){
+      return {id:i.id||uid(),text:i.text,details:i.details||"",done:!!i.done,priority:!!i.priority,
+              createdAt:i.createdAt||0,doneAt:i.done?(i.doneAt||0):0};
+    });
+  }
   function rollover(s){
     var t=today();
     if(!s||!Array.isArray(s.items)) return {date:t,items:[],history:{},cleared:[]};
     s.items.forEach(function(i){if(typeof i.details!=="string")i.details="";});
     if(!s.history||typeof s.history!=="object")s.history={};
     if(!Array.isArray(s.cleared))s.cleared=[];
+    Object.keys(s.history).forEach(function(k){
+      s.history[k].forEach(function(i){if(!i.id)i.id=uid();});
+    });
     if(s.date!==t){
       var day=snap(s.cleared.concat(s.items));
       if(day.length)s.history[s.date]=day;
@@ -107,7 +247,6 @@
     }
     return s;
   }
-
   function loadLocal(){
     try{var r=localStorage.getItem(KEY);if(r)return JSON.parse(r);}catch(e){}
     return null;
@@ -123,6 +262,7 @@
     },400);
   }
 
+  /* ---------- today's list ---------- */
   function render(){
     var d=new Date();
     document.getElementById("date").textContent=d.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric",year:"numeric"});
@@ -135,8 +275,8 @@
     state.items.forEach(function(it){
       var li=document.createElement("li");
       li.className=(it.done?"done":"")+(open[it.id]?" open":"");
-
       li.setAttribute("data-lid",it.id);
+
       var row=document.createElement("div");row.className="row";
       var grip=document.createElement("span");grip.className="grip";grip.textContent="⋮⋮";
       grip.title="Drag to reorder";grip.setAttribute("aria-label","Drag to reorder "+it.text);
@@ -148,12 +288,13 @@
 
       var n=document.createElement("button");n.className="name";n.type="button";
       n.setAttribute("aria-expanded",open[it.id]?"true":"false");
+      if(it.priority){var pr=document.createElement("span");pr.className="pri";pr.textContent="!";pr.title="High priority";n.appendChild(pr);}
       var t=document.createElement("span");t.className="t";t.textContent=it.text;
       n.appendChild(t);
       if(it.details&&it.details.trim()){var dot=document.createElement("span");dot.className="dot";dot.title="Has details";n.appendChild(dot);}
       var ch=document.createElement("span");ch.className="chev";ch.textContent="▸";
       n.onclick=function(){open[it.id]=!open[it.id];render();
-        if(open[it.id]){var ta=document.querySelector('[data-id="'+it.id+'"]');if(ta)ta.focus();}};
+        if(open[it.id]){var ta=document.querySelector('textarea[data-id="'+it.id+'"]');if(ta)ta.focus();}};
 
       var x=document.createElement("button");x.className="x";x.type="button";x.textContent="✕";
       x.setAttribute("aria-label","Delete "+it.text);
@@ -162,6 +303,10 @@
       row.appendChild(grip);row.appendChild(b);row.appendChild(n);row.appendChild(ch);row.appendChild(x);
 
       var det=document.createElement("div");det.className="detail";
+      var pl=document.createElement("label");pl.className="pri-l";
+      var pc=document.createElement("input");pc.type="checkbox";pc.checked=!!it.priority;
+      pc.onchange=function(){it.priority=pc.checked;save();render();};
+      pl.appendChild(pc);pl.appendChild(document.createTextNode("High priority"));
       var ta=document.createElement("textarea");ta.setAttribute("data-id",it.id);
       ta.placeholder="Add details, notes, links…";ta.value=it.details||"";
       ta.setAttribute("aria-label","Details for "+it.text);
@@ -171,7 +316,7 @@
         if(has&&!nb){var dd=document.createElement("span");dd.className="dot";n.appendChild(dd);}
         if(!has&&nb)nb.remove();
       });
-      det.appendChild(ta);
+      det.appendChild(pl);det.appendChild(ta);
 
       li.appendChild(row);li.appendChild(det);
       list.appendChild(li);
@@ -179,6 +324,7 @@
     var done=state.items.filter(function(i){return i.done;}).length,total=state.items.length;
     document.getElementById("fill").style.width=(total?Math.round(done/total*100):0)+"%";
     document.getElementById("count").textContent=total?(done+" of "+total+" done"):"";
+    document.getElementById("clear").disabled=!done;
     renderHistory();
   }
 
@@ -214,52 +360,22 @@
     });
   }
 
-  function fmt(k){var p=k.split("-");return new Date(+p[0],+p[1]-1,+p[2]).toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric",year:"numeric"});}
-  function renderHistory(){
-    var h=document.getElementById("hist");
-    h.innerHTML="";
-    document.getElementById("hbtn").textContent=histOpen?"Hide history":"History";
-    if(!histOpen)return;
-    var title=document.createElement("h2");title.textContent="History";title.style.cssText="font-size:1.1rem;margin:0 0 10px";
-    h.appendChild(title);
-    var keys=Object.keys(state.history).sort().reverse();
-    if(!keys.length){
-      var e=document.createElement("div");e.className="empty";e.textContent="No past days yet. Each day's list is saved here at midnight.";
-      h.appendChild(e);return;
-    }
-    keys.forEach(function(k){
-      var items=state.history[k];
-      var done=items.filter(function(i){return i.done;}).length;
-      var box=document.createElement("div");box.className="hday";
-      var hd=document.createElement("h3");hd.textContent=fmt(k)+" — "+done+" of "+items.length+" done";
-      var ul=document.createElement("ul");
-      items.forEach(function(i){
-        var li=document.createElement("li");li.className="hi"+(i.done?"":" no");
-        var m=document.createElement("span");m.className="m";m.textContent=i.done?"✓":"○";
-        var tt=document.createElement("span");tt.className="tt";tt.textContent=i.text;
-        li.appendChild(m);li.appendChild(tt);
-        if(i.details&&i.details.trim()){var dd=document.createElement("div");dd.className="dd";dd.textContent=i.details;li.appendChild(dd);}
-        ul.appendChild(li);
-      });
-      box.appendChild(hd);box.appendChild(ul);h.appendChild(box);
-    });
-    var w=document.createElement("button");w.className="ghost";
-    w.textContent=confirmWipe?"Tap again to erase all history":"Clear history";
-    w.onclick=function(){
-      if(!confirmWipe){confirmWipe=true;renderHistory();return;}
-      state.history={};confirmWipe=false;save();renderHistory();
-    };
-    h.appendChild(w);
+  function toggle(id){
+    state.items.forEach(function(i){if(i.id===id){i.done=!i.done;i.doneAt=i.done?Date.now():0;}});
+    save();render();
   }
-  document.getElementById("hbtn").onclick=function(){histOpen=!histOpen;confirmWipe=false;renderHistory();};
-
-  function toggle(id){state.items.forEach(function(i){if(i.id===id)i.done=!i.done;});save();render();}
-  function remove(id){state.items=state.items.filter(function(i){return i.id!==id;});delete open[id];save();render();}
-
+  function remove(id){
+    var it=state.items.filter(function(i){return i.id===id;})[0];
+    if(!it)return;
+    ask('Delete "'+it.text+'"? This can\'t be undone.',"Delete",function(){
+      state.items=state.items.filter(function(i){return i.id!==id;});
+      delete open[id];save();render();
+    });
+  }
   function addTask(){
     var inp=document.getElementById("in"),v=inp.value.trim();
     if(!v)return;
-    state.items.push({id:uid(),text:v,details:"",done:false});
+    state.items.push({id:uid(),text:v,details:"",done:false,priority:false,createdAt:Date.now(),doneAt:0});
     inp.value="";save();render();inp.focus();
   }
   document.getElementById("addbtn").addEventListener("click",addTask);
@@ -267,12 +383,262 @@
     if(e.key==="Enter"){e.preventDefault();addTask();}
   });
   document.getElementById("clear").onclick=function(){
-    state.cleared=state.cleared.concat(state.items.filter(function(i){return i.done;}));
-    state.items=state.items.filter(function(i){return !i.done;});save();render();
+    var n=state.items.filter(function(i){return i.done;}).length;
+    if(!n)return;
+    ask("Clear "+n+" completed task"+(n>1?"s":"")+"? They'll stay in History.","Clear",function(){
+      state.cleared=state.cleared.concat(state.items.filter(function(i){return i.done;}));
+      state.items=state.items.filter(function(i){return !i.done;});
+      save();render();
+    });
   };
 
+  /* ---------- history ---------- */
+  function mk(k,i,selectable){
+    return {k:k,id:i.id,key:k+"|"+i.id,text:i.text,details:i.details||"",done:!!i.done,priority:!!i.priority,
+            createdAt:i.createdAt||0,doneAt:i.doneAt||0,sel:selectable};
+  }
+  function histView(){
+    var view={};
+    Object.keys(state.history).forEach(function(k){
+      view[k]=state.history[k].map(function(i){return mk(k,i,true);});
+    });
+    var t=state.cleared.map(function(i){return mk(state.date,i,true);})
+      .concat(state.items.map(function(i){return mk(state.date,i,false);}));
+    if(t.length)view[state.date]=(view[state.date]||[]).concat(t);
+    return view;
+  }
+  function match(e){
+    if(H.show==="done"&&!e.done)return false;
+    if(H.show==="open"&&e.done)return false;
+    if(H.q&&(e.text+" "+e.details).toLowerCase().indexOf(H.q.toLowerCase())<0)return false;
+    return true;
+  }
+  function metaOf(e,flat){
+    var p=[];
+    if(flat)p.push(shortKey(e.k));
+    if(e.done&&e.doneAt)p.push("Done "+stamp(e.doneAt,e.k));
+    else if(!e.done&&e.createdAt)p.push("Added "+stamp(e.createdAt,e.k));
+    return p.join(" · ");
+  }
+  function selCount(){return Object.keys(sel).filter(function(k){return sel[k];}).length;}
+
+  function rowEl(e,flat){
+    var li=document.createElement("li");
+    li.className="hi"+(e.done?"":" no")+(selMode&&e.sel?" pick":"")+(sel[e.key]?" picked":"");
+    if(selMode){
+      if(e.sel){
+        var cb=document.createElement("input");cb.type="checkbox";cb.checked=!!sel[e.key];
+        cb.setAttribute("aria-label","Select "+e.text);
+        cb.onclick=function(ev){ev.stopPropagation();};
+        cb.onchange=function(){sel[e.key]=cb.checked;renderHistory();};
+        li.appendChild(cb);
+        li.onclick=function(){sel[e.key]=!sel[e.key];renderHistory();};
+      }else{
+        var sp=document.createElement("span");sp.className="cbs";sp.title="Still on today's list — delete it there";
+        li.appendChild(sp);
+      }
+    }
+    var m=document.createElement("span");m.className="m";m.textContent=e.done?"✓":"○";
+    var c=document.createElement("div");c.className="hc";
+    var l=document.createElement("div");l.className="hl";
+    var tt=document.createElement("span");tt.className="tt";
+    if(e.priority){var pr=document.createElement("span");pr.className="pri";pr.textContent="! ";tt.appendChild(pr);}
+    tt.appendChild(document.createTextNode(e.text));
+    var mt=document.createElement("span");mt.className="meta";mt.textContent=metaOf(e,flat);
+    l.appendChild(tt);l.appendChild(mt);c.appendChild(l);
+    if(e.details&&e.details.trim()){var dd=document.createElement("div");dd.className="dd";dd.textContent=e.details;c.appendChild(dd);}
+    li.appendChild(m);li.appendChild(c);
+    return li;
+  }
+
+  function renderHistoryList(){
+    var box=document.getElementById("hlist");
+    box.innerHTML="";
+    var view=histView(),keys=Object.keys(view),all=[],total=0;
+    keys.forEach(function(k){
+      view[k].forEach(function(e,idx){e.idx=idx;total++;if(match(e))all.push(e);});
+    });
+    function msg(t){var d=document.createElement("div");d.className="empty";d.textContent=t;box.appendChild(d);}
+    if(!total){msg("Nothing here yet. Today's tasks show up as you add them, and each day is saved at midnight.");return;}
+    if(!all.length){msg("No matches.");return;}
+
+    if(H.sort==="new"||H.sort==="old"){
+      var by={};all.forEach(function(e){(by[e.k]=by[e.k]||[]).push(e);});
+      var ks=Object.keys(by).sort();if(H.sort==="new")ks.reverse();
+      ks.forEach(function(k){
+        var items=by[k],done=items.filter(function(i){return i.done;}).length;
+        var g=document.createElement("div");g.className="hday";
+        var h=document.createElement("h3");
+        var l=document.createElement("span");
+        l.textContent=(k===state.date?"Today · ":"")+longKey(k);
+        var r=document.createElement("span");r.textContent=done+" of "+items.length+" done";
+        h.appendChild(l);h.appendChild(r);
+        var ul=document.createElement("ul");
+        items.forEach(function(e){ul.appendChild(rowEl(e,false));});
+        g.appendChild(h);g.appendChild(ul);box.appendChild(g);
+      });
+    }else{
+      all.sort(function(a,b){
+        if(H.sort==="az"){
+          var c=a.text.toLowerCase().localeCompare(b.text.toLowerCase());
+          if(c)return c;
+        }else{
+          if(a.priority!==b.priority)return a.priority?-1:1;
+        }
+        if(a.k!==b.k)return a.k<b.k?1:-1;
+        return a.idx-b.idx;
+      });
+      var g2=document.createElement("div");g2.className="hday";
+      var ul2=document.createElement("ul");
+      all.forEach(function(e){ul2.appendChild(rowEl(e,true));});
+      g2.appendChild(ul2);box.appendChild(g2);
+    }
+  }
+
+  function renderHistory(){
+    document.getElementById("hist").hidden=!histOpen;
+    document.getElementById("hbtn").textContent=histOpen?"Hide history":"History";
+    if(!histOpen)return;
+    document.getElementById("hsel").textContent=selMode?"Done":"Select";
+    document.getElementById("hbar").hidden=!selMode;
+    var n=selCount();
+    document.getElementById("hcnt").textContent=n+" selected";
+    document.getElementById("hdel").disabled=!n;
+    renderHistoryList();
+  }
+
+  document.getElementById("hbtn").onclick=function(){
+    histOpen=!histOpen;if(!histOpen){selMode=false;sel={};}renderHistory();
+  };
+  document.getElementById("hsel").onclick=function(){selMode=!selMode;sel={};renderHistory();};
+  document.getElementById("hq").addEventListener("input",function(e){H.q=e.target.value.trim();renderHistoryList();});
+  document.getElementById("hsort").onchange=function(e){H.sort=e.target.value;renderHistoryList();};
+  document.getElementById("hshow").onchange=function(e){H.show=e.target.value;renderHistoryList();};
+  document.getElementById("hall").onclick=function(){
+    var view=histView();
+    Object.keys(view).forEach(function(k){view[k].forEach(function(e){if(e.sel&&match(e))sel[e.key]=true;});});
+    renderHistory();
+  };
+  document.getElementById("hdel").onclick=function(){
+    var keys=Object.keys(sel).filter(function(k){return sel[k];});
+    if(!keys.length)return;
+    ask("Delete "+keys.length+" selected item"+(keys.length>1?"s":"")+" from History? This can't be undone.","Delete",function(){
+      keys.forEach(function(key){
+        var at=key.indexOf("|"),k=key.slice(0,at),id=key.slice(at+1);
+        if(k===state.date){state.cleared=state.cleared.filter(function(i){return i.id!==id;});}
+        else if(state.history[k]){
+          state.history[k]=state.history[k].filter(function(i){return i.id!==id;});
+          if(!state.history[k].length)delete state.history[k];
+        }
+      });
+      sel={};save();renderHistory();
+    });
+  };
+  document.getElementById("hclr").onclick=function(){
+    ask("Erase ALL history? Your current to-do list won't be touched. This can't be undone.","Erase all",function(){
+      state.history={};state.cleared=[];sel={};selMode=false;save();renderHistory();
+    });
+  };
+
+  /* ---------- reminders (optional) ---------- */
+  var NOTIFY_OK=true;
+  var NKEY="daily-todo-notify-v1";
+  var nset={every:0,next:0};
+  try{var nr=localStorage.getItem(NKEY);if(nr){var no=JSON.parse(nr);if(no&&typeof no.every==="number")nset=no;}}catch(e){}
+  function nsave(){try{localStorage.setItem(NKEY,JSON.stringify(nset));}catch(e){}}
+  var REM_OPTS=[[0,"Off"],[30,"Every 30 minutes"],[60,"Every hour"],[180,"Every 3 hours"],[300,"Every 5 hours"]];
+  function canNotify(){return ("Notification" in window)&&("serviceWorker" in navigator);}
+  function perm(){return canNotify()?Notification.permission:"unsupported";}
+  function openTasks(){return state.items.filter(function(i){return !i.done;});}
+  function everyText(m){var o=REM_OPTS.filter(function(x){return x[0]===m;})[0];return o?o[1].replace("Every ","every "):"";}
+
+  function showReminder(test){
+    var left=openTasks(),title=test?"Test reminder":"To-Do reminder",body;
+    if(!left.length){body="Notifications are working. You have no unfinished tasks.";}
+    else{
+      var sorted=left.slice().sort(function(a,b){return (b.priority?1:0)-(a.priority?1:0);});
+      var names=sorted.slice(0,3).map(function(i){return (i.priority?"! ":"")+i.text;});
+      body=left.length+" task"+(left.length>1?"s":"")+" left: "+names.join(", ")+(left.length>3?" +"+(left.length-3)+" more":"");
+    }
+    var o={body:body,tag:"todo-reminder",renotify:true,icon:"icons/icon-192.png",badge:"icons/icon-192.png"};
+    function fallback(){try{new Notification(title,o);}catch(e){}}
+    if(navigator.serviceWorker&&navigator.serviceWorker.ready){
+      return navigator.serviceWorker.ready.then(function(reg){return reg.showNotification(title,o);}).catch(fallback);
+    }
+    fallback();
+  }
+  function nload(){
+    try{var r=localStorage.getItem(NKEY);if(r){var o=JSON.parse(r);if(o&&typeof o.every==="number")nset=o;}}catch(e){}
+  }
+  function ntick(){
+    nload();   // pick up changes made in another open window
+    if(!NOTIFY_OK||!nset.every||perm()!=="granted")return;
+    var now=Date.now();
+    if(now<nset.next)return;
+    nset.next=now+nset.every*60000;   // schedule from now so missed ones don't pile up
+    nsave();
+    if(openTasks().length)showReminder(false);   // nothing left = nothing to remind about
+    updateBell();
+  }
+  function updateBell(){
+    var b=document.getElementById("bell");
+    b.hidden=!NOTIFY_OK;
+    var on=nset.every>0&&perm()==="granted";
+    b.classList.toggle("on",on);
+    b.title=on?"Reminders on ("+everyText(nset.every)+")":"Reminders";
+  }
+  function renderRem(note){
+    var st=document.getElementById("remStatus"),pm=perm(),on=nset.every>0&&pm==="granted";
+    if(pm==="unsupported")st.textContent="Notifications aren't available here. On iPhone, add this app to your Home Screen first (needs iOS 16.4 or newer), then open it from the icon.";
+    else if(pm==="denied"||note==="blocked")st.textContent="Notifications are blocked for this app. Allow them in your phone's Settings, then come back.";
+    else if(on)st.textContent="Reminding you "+everyText(nset.every)+" while tasks are unfinished. It stops once everything is checked off.";
+    else if(pm==="granted")st.textContent="Choose how often to be reminded about unfinished tasks.";
+    else st.textContent="Choose how often. Your phone will ask you to allow notifications.";
+    var box=document.getElementById("remOpts");box.innerHTML="";
+    REM_OPTS.forEach(function(o){
+      var l=document.createElement("label");l.className="opt"+((on?nset.every:0)===o[0]?" sel":"");
+      var r=document.createElement("input");r.type="radio";r.name="remevery";r.checked=(on?nset.every:0)===o[0];
+      r.onchange=function(){setEvery(o[0]);};
+      l.appendChild(r);l.appendChild(document.createTextNode(o[1]));box.appendChild(l);
+    });
+    var nx=document.getElementById("remNext");
+    if(on){nx.textContent=openTasks().length?"Next reminder around "+tm(nset.next):"All done — no reminders needed right now.";}
+    else nx.textContent="";
+    document.getElementById("remTest").disabled=(pm==="unsupported"||pm==="denied");
+  }
+  function setEvery(min){
+    if(!min){nset={every:0,next:0};nsave();updateBell();renderRem();return;}
+    if(!canNotify()){renderRem();return;}
+    function go(){nset={every:min,next:Date.now()+min*60000};nsave();updateBell();renderRem();}
+    if(Notification.permission==="granted")go();
+    else if(Notification.permission==="denied")renderRem("blocked");
+    else{
+      var pr=Notification.requestPermission(function(p){});
+      if(pr&&pr.then)pr.then(function(p){if(p==="granted")go();else renderRem();});
+    }
+  }
+  var remEl=document.getElementById("rem");
+  function openRem(){renderRem();remEl.hidden=false;document.getElementById("remClose").focus();}
+  function closeRem(){remEl.hidden=true;}
+  document.getElementById("bell").onclick=openRem;
+  document.getElementById("remClose").onclick=closeRem;
+  remEl.addEventListener("click",function(e){if(e.target===remEl)closeRem();});
+  document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!remEl.hidden)closeRem();});
+  document.getElementById("remTest").onclick=function(){
+    if(!canNotify())return;
+    if(Notification.permission==="granted"){showReminder(true);return;}
+    var pr=Notification.requestPermission(function(p){});
+    if(pr&&pr.then)pr.then(function(p){if(p==="granted")showReminder(true);renderRem();updateBell();});
+  };
+  setInterval(ntick,30000);
+  document.addEventListener("visibilitychange",function(){if(!document.hidden)ntick();});
+  window.addEventListener("focus",ntick);
+  window.addEventListener("pageshow",ntick);
+
+  /* ---------- start up ---------- */
   state=rollover(loadLocal());
   render();
+  updateBell();ntick();
 
   // roll over to a new day if the page stays open past midnight
   function checkDay(){
